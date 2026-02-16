@@ -28,21 +28,6 @@ node scripts/scan-skill-injection.cjs --dir /path/to/your/skills
 
 ## Usage by vendor / environment
 
-### Dex (personal knowledge system)
-
-Dex keeps skills in `.claude/skills/`. Use the scanner from your Dex repo root:
-
-```bash
-# From Dex repo root (clone this repo into 06-Resources/Dex_System/Skills_Publish/ or run from a copy)
-node 06-Resources/Dex_System/Skills_Publish/scan-skill-injection/scripts/scan-skill-injection.cjs --dir .claude/skills
-
-# Or add to package.json and run:
-# "skill-scan": "node 06-Resources/Dex_System/Skills_Publish/scan-skill-injection/scripts/scan-skill-injection.cjs --dir .claude/skills"
-# "skill-scan:fixtures": "node 06-Resources/Dex_System/Skills_Publish/scan-skill-injection/scripts/scan-skill-injection.cjs --dir 06-Resources/Dex_System/Skills_Publish/scan-skill-injection/fixtures"
-```
-
-Slash command: install the skill from `.claude/skills/scan-skill-injection/` (SKILL.md) and run `/scan-skill-injection`. The skill runs the script and reports results.
-
 ### Cursor (IDE with rules and skills)
 
 Skills and rules live under `.cursor/` or your project’s skill directory. Point the scanner at that folder:
