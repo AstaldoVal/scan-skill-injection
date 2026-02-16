@@ -26,6 +26,21 @@ node scripts/scan-skill-injection.cjs --dir /path/to/your/skills
 
 ---
 
+## Automatic check when you install a skill
+
+Run the **watcher** once (e.g. in a terminal or as a background service). After that, every new or changed skill in your skills directory is scanned automatically — no extra commands or parameters.
+
+```bash
+npm run watch
+```
+
+Leave the process running. It watches `skills/` (or pass `--dir <path>` to watch another directory). On any change it runs the scanner with `--newer-than 1 --frontmatter --include-scripts`. If the scanner finds issues, it prints them to the console.
+
+- **Cursor:** `node scripts/watch-and-scan.cjs --dir .cursor/skills`
+- **Other:** default is `skills/`; override with `--dir <your-skills-path>`.
+
+---
+
 ## Usage by vendor / environment
 
 ### Cursor (IDE with rules and skills)
@@ -57,11 +72,17 @@ node scripts/scan-skill-injection.cjs --dir /path/to/downloaded/skill --frontmat
 
 ### OpenClaw / ClawHub
 
-Before installing a skill from ClawHub, check the name against the blocklist and scan the skill folder:
+**When installing a skill:** Check the name, then scan the skill folder (run both; if the name is blocklisted, do not install):
 
 ```bash
-node scripts/scan-skill-injection.cjs --check-name polymarket-all-in-one   # exit 1 = blocklisted
+node scripts/scan-skill-injection.cjs --check-name <skill-name>   # exit 1 = blocklisted
 node scripts/scan-skill-injection.cjs --dir /path/to/cloned/skill --frontmatter --include-scripts
+```
+
+To verify **only newly installed** skills (e.g. after installing several at once), scan directories modified in the last N minutes:
+
+```bash
+node scripts/scan-skill-injection.cjs --dir skills --newer-than 10 --frontmatter --include-scripts
 ```
 
 Optionally verify the skill at [Clawdex (Koi Security)](https://clawdex.koi.security).
@@ -99,6 +120,7 @@ Example GitHub Actions step:
 | Option | Description |
 |--------|-------------|
 | `--dir <path>` | Directory to scan (default: `skills`). |
+| `--newer-than <minutes>` | Scan only skill subdirectories modified in the last N minutes (for verifying newly installed skills). |
 | `--verbose` | Print file count when clean. |
 | `--no-comments` | Skip hidden HTML-comment check. |
 | `--no-prereqs` | Skip Prerequisites/Installation block check. |

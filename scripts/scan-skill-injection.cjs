@@ -8,6 +8,7 @@
  *        node scripts/scan-skill-injection.cjs --frontmatter
  *        node scripts/scan-skill-injection.cjs --include-scripts
  *        node scripts/scan-skill-injection.cjs --check-name <skill-name>
+ *        node scripts/scan-skill-injection.cjs --newer-than <minutes>
  * Exit: 0 = no matches / name not in blocklist, 1 = at least one match / name is in blocklist
  */
 
@@ -25,6 +26,14 @@ const SKIP_COMMENT_CHECK = process.argv.includes('--no-comments');
 const SKIP_PREREQS_CHECK = process.argv.includes('--no-prereqs');
 const FRONTMATTER_CHECK = process.argv.includes('--frontmatter');
 const INCLUDE_SCRIPTS = process.argv.includes('--include-scripts');
+
+function parseNewerThan() {
+  const idx = process.argv.indexOf('--newer-than');
+  if (idx === -1 || !process.argv[idx + 1]) return null;
+  const n = parseInt(process.argv[idx + 1], 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+const NEWER_THAN_MIN = parseNewerThan();
 
 /** Red-flag patterns (regex, case-insensitive). Context matters: review each hit. */
 const PATTERNS = [
@@ -261,7 +270,50 @@ function main() {
     process.exit(0);
   }
 
-  const skillFiles = findSkillFiles(SKILLS_DIR).filter(
+  let skillFiles = [];
+  if (NEWER_THAN_MIN !== null) {
+    if (!fs.existsSync(SKILLS_DIR)) {
+      if (VERBOSE) console.log('Skills dir does not exist:', SKILLS_DIR);
+      process.exit(0);
+    }
+    const now = Date.now();
+    const maxAgeMs = NEWER_THAN_MIN * 60 * 1000;
+    const entries = fs.readdirSync(SKILLS_DIR, { withFileTypes: true });
+    const subdirs = entries.filter((e) => e.isDirectory() && !SKIP_DIRS.has(e.name));
+    if (subdirs.length > 0) {
+      const recent = subdirs.filter((d) => {
+        const full = path.join(SKILLS_DIR, d.name);
+        try {
+          const stat = fs.statSync(full);
+          return (now - stat.mtimeMs) <= maxAgeMs;
+        } catch {
+          return false;
+        }
+      });
+      if (recent.length === 0) {
+        if (VERBOSE) console.log('No skill directories modified in the last', NEWER_THAN_MIN, 'minute(s).');
+        process.exit(0);
+      }
+      for (const d of recent) {
+        skillFiles.push(...findSkillFiles(path.join(SKILLS_DIR, d.name)));
+      }
+    } else {
+      try {
+        const stat = fs.statSync(SKILLS_DIR);
+        if ((now - stat.mtimeMs) > maxAgeMs) {
+          if (VERBOSE) console.log('Skill path not modified in the last', NEWER_THAN_MIN, 'minute(s).');
+          process.exit(0);
+        }
+      } catch {
+        process.exit(0);
+      }
+      skillFiles = findSkillFiles(SKILLS_DIR);
+    }
+  } else {
+    skillFiles = findSkillFiles(SKILLS_DIR);
+  }
+
+  skillFiles = skillFiles.filter(
     (f) =>
       f.endsWith('SKILL.md') ||
       f.includes('SKILL.md') ||
